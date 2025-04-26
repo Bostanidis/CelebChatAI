@@ -1,0 +1,29 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_TELEMETRY_DISABLED = "1"
+
+[functions]
+  node_bundler = "esbuild"
+
+[build.processing]
+  skip_processing = false
+
+[build.processing.html]
+  pretty_urls = true
+
+[build.processing.css]
+  bundle = true
+  minify = true
+
+[build.processing.js]
+  bundle = true
+  minify = true
+
+[build.processing.images]
+  compress = true
+
+[build]
+  idiomatic_version_file_enable_tools = true 
