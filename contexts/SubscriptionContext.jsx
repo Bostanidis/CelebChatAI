@@ -169,17 +169,66 @@ export function SubscriptionProvider({ children }) {
 
   // Increment message count
   const incrementMessageCount = async (userId, characterId) => {
-    if (!userId || !characterId) {
+    // For guest users (userId is null)
+    if (!userId) {
+      setGuestMessageCount(prev => prev + 1);
+      return true;
+    }
+
+    // For authenticated users
+    if (!characterId) {
+      console.warn('No character ID provided for message count increment');
       return false;
     }
 
     try {
-      const currentCount = await getDailyMessageCount(userId, characterId);
-      const newCount = currentCount + 1;
-      
-      const result = await saveChat(userId, characterId, newCount);
-      return result !== null;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+
+      // Get current count
+      const { data: currentData, error: fetchError } = await supabase
+        .from('message_counts')
+        .select('count')
+        .match({ user_id: userId, character_id: characterId, date: todayStr })
+        .single();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching message count:', fetchError);
+        return false;
+      }
+
+      if (!currentData) {
+        // No record exists, create new one
+        const { error: insertError } = await supabase
+          .from('message_counts')
+          .insert({
+            user_id: userId,
+            character_id: characterId,
+            date: todayStr,
+            count: 1
+          });
+
+        if (insertError) {
+          console.error('Error inserting message count:', insertError);
+          return false;
+        }
+      } else {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('message_counts')
+          .update({ count: (currentData.count || 0) + 1 })
+          .match({ user_id: userId, character_id: characterId, date: todayStr });
+
+        if (updateError) {
+          console.error('Error updating message count:', updateError);
+          return false;
+        }
+      }
+
+      return true;
     } catch (err) {
+      console.error('Error incrementing message count:', err.message || err);
       return false;
     }
   };

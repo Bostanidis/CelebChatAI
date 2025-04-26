@@ -193,7 +193,7 @@ export default function Login() {
                   href="/signup"
                   className="text-primary hover:text-primary/90 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
                 >
-                  Don't have an account? Sign up
+                  Don&apos;t have an account? Sign up
                 </Link>
               </div>
             </form>

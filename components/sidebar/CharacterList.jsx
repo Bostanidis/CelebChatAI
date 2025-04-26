@@ -24,6 +24,14 @@ export default function CharacterList() {
   const { tier, getRemainingMessages } = useSubscription()
   const pathname = usePathname()
 
+  console.log('CharacterList render:', {
+    charactersLength: characters?.length,
+    characters,
+    isLoading,
+    error,
+    tier
+  });
+
   const handleCharacterClick = (character) => {
     setSelectedCharacter(character)
     setShowNotifications(false)
@@ -59,7 +67,7 @@ export default function CharacterList() {
           <div className="p-4 text-red-500 text-center">
             {error}
           </div>
-        ) : characters.length === 0 ? (
+        ) : !characters || characters.length === 0 ? (
           <div className="p-4 text-center text-muted-foreground">
             No characters available
           </div>

@@ -167,7 +167,7 @@ export default function SubscriptionContent({ user }) {
                 Is there a refund policy?
               </h3>
               <p className="text-neutral-600 dark:text-neutral-400">
-                Yes, we offer a 30-day money-back guarantee if you're not satisfied with our service.
+                Yes, we offer a 30-day money-back guarantee if you&apos;re not satisfied with our service.
               </p>
             </div>
           </div>

@@ -16,19 +16,11 @@ import Logo from '../Logo'
 // Placeholder component for when no character is selected
 function WelcomePlaceholder() {
   return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-center p-8 rounded-2xl max-w-md mx-auto glass border border-neutral-300/30 dark:border-neutral-700/50 animate-scaleIn backdrop-blur-md shadow-xl dark:shadow-lg dark:shadow-purple-900/20">
-        <div className="w-20 h-20 mx-auto mb-6 relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full blur-md opacity-60 animate-pulse"></div>
-          <div className="relative bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full h-full w-full flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-10 h-10 text-white">
-              <path d="M4.913 2.658c2.075-.27 4.19-.408 6.337-.408 2.147 0 4.262.139 6.337.408 1.922.25 3.291 1.861 3.405 3.727a4.403 4.403 0 00-1.032-.211 50.89 50.89 0 00-8.42 0c-2.358.196-4.04 2.19-4.04 4.434v4.286a4.47 4.47 0 002.433 3.984L7.28 21.53A.75.75 0 016 21v-4.03a48.527 48.527 0 01-1.087-.128C2.905 16.58 1.5 14.833 1.5 12.862V6.638c0-1.97 1.405-3.718 3.413-3.979z" />
-              <path d="M15.75 7.5c-1.376 0-2.739.057-4.086.169C10.124 7.797 9 9.103 9 10.609v4.285c0 1.507 1.128 2.814 2.67 2.94 1.243.102 2.5.157 3.768.165l2.782 2.781a.75.75 0 001.28-.53v-2.39l.33-.026c1.542-.125 2.67-1.433 2.67-2.94v-4.286c0-1.505-1.125-2.811-2.664-2.94A49.392 49.392 0 0015.75 7.5z" />
-            </svg>
-          </div>
+    <div className="flex flex-col h-full">
+      <div className="flex-1 p-4 overflow-auto">
+        <div className="h-full flex items-center justify-center">
+          <Logo />
         </div>
-        <h2 className="text-2xl font-bold mb-3 gradient-text">Welcome to AI Character Chat</h2>
-        <p className="text-neutral-600 dark:text-neutral-300">Select a character from the sidebar to start chatting.</p>
       </div>
     </div>
   )
@@ -176,6 +168,9 @@ export default function ChatWindow() {
       return
     }
 
+    const messageContent = input.trim()
+    setInput('')
+
     try {
       // Clear any existing typing indicator timer
       if (typingTimerRef.current) {
@@ -188,8 +183,7 @@ export default function ChatWindow() {
         setShowTypingIndicator(true)
       }, randomDelay)
       
-      await sendMessage(input)
-      setInput('')
+      await sendMessage(messageContent)
       
       // Update remaining messages after sending
       const newRemaining = await getRemainingMessages()
@@ -202,26 +196,19 @@ export default function ChatWindow() {
     } catch (error) {
       console.error('Error sending message:', error)
       setShowTypingIndicator(false)
+      // Don't set input back if error occurs, let the error message show in the chat
     }
   }
 
-  // Clear typing indicator when messages change
+  // Clear typing indicator when messages change or on error
   useEffect(() => {
-    if (messages && messages.length > 0 && !isLoading) {
+    if ((messages && messages.length > 0) || messages?.some(m => m.role === 'error')) {
       setShowTypingIndicator(false);
     }
-  }, [messages, isLoading]);
+  }, [messages]);
 
   if (!selectedCharacter) {
-    return (
-      <div className="flex flex-col h-full">
-        <div className="flex-1 p-4 overflow-auto">
-          <div className="h-full flex items-center justify-center">
-            <Logo />
-          </div>
-        </div>
-      </div>
-    );
+    return <WelcomePlaceholder />;
   }
 
   if (isBlocked) {
@@ -380,7 +367,7 @@ export default function ChatWindow() {
                 character={selectedCharacter}
           />
         ))}
-            {showTypingIndicator && (
+            {showTypingIndicator && !messages.some(m => m.role === 'error') && (
               <div className="flex w-full mb-4 justify-start">
                 <div className="flex max-w-[80%] items-start gap-3 flex-row">
                   {selectedCharacter?.avatar_url && (

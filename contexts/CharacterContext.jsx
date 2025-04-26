@@ -4,9 +4,12 @@ import { createContext, useContext, useState, useCallback, useEffect } from 'rea
 import { useAuth } from './AuthContext';
 import { useSubscription } from './SubscriptionContext';
 import supabase from '@/utils/supabase/client';
-import { getAllCharacters } from '@/lib/characters';
+import { getAllCharacters, CHARACTERS } from '@/lib/characters';
 
 const CharacterContext = createContext();
+
+// Add debug log
+console.log('CharacterContext initialization, CHARACTERS:', Object.keys(CHARACTERS).length);
 
 const debounce = (fn, delay) => {
   let timeoutId;
@@ -38,54 +41,71 @@ export function CharacterProvider({ children }) {
       setIsLoading(true);
       setError(null);
 
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Get local characters
+      // Always get local characters first
       const localCharacters = getAllCharacters();
+      console.log('Local characters loaded:', localCharacters?.length, localCharacters);
       
-      // Fetch characters from Supabase
-      const { data: dbCharacters, error } = await supabase
-        .from('characters')
-        .select('*')
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching characters:', error);
-        // Fall back to local characters if Supabase fails
+      // If user is not authenticated, just use local characters
+      if (!user) {
+        console.log('No user, setting local characters');
         setCharacters(localCharacters);
         return;
       }
 
-      // Create a map of DB characters for quick lookup
-      const dbCharacterMap = new Map(dbCharacters?.map(char => [char.id, char]) || []);
-      
-      // Combine characters, preferring DB versions when available
-      const combinedCharacters = localCharacters.map(localChar => {
-        const dbChar = dbCharacterMap.get(localChar.id);
-        return dbChar ? { ...localChar, ...dbChar } : localChar;
-      });
+      // Optionally fetch additional data from Supabase if user is authenticated
+      try {
+        console.log('Fetching from Supabase...');
+        const { data: dbCharacters, error } = await supabase
+          .from('characters')
+          .select('*')
+          .order('name');
 
-      setCharacters(combinedCharacters);
-      console.log('Successfully fetched characters:', combinedCharacters?.length);
+        console.log('Supabase response:', { dbCharacters, error });
+
+        if (!error && dbCharacters) {
+          // Create a map of DB characters for quick lookup
+          const dbCharacterMap = new Map(dbCharacters.map(char => [char.id, char]));
+          
+          // Combine characters, preferring DB versions when available
+          const combinedCharacters = localCharacters.map(localChar => {
+            const dbChar = dbCharacterMap.get(localChar.id);
+            return dbChar ? { ...localChar, ...dbChar } : localChar;
+          });
+
+          console.log('Setting combined characters:', combinedCharacters?.length);
+          setCharacters(combinedCharacters);
+        } else {
+          // If Supabase fails, just use local characters
+          console.log('Supabase error, falling back to local characters');
+          setCharacters(localCharacters);
+        }
+      } catch (err) {
+        console.error('Error fetching from Supabase:', err);
+        // Fall back to local characters
+        console.log('Supabase error, falling back to local characters');
+        setCharacters(localCharacters);
+      }
     } catch (err) {
       console.error('Unexpected error fetching characters:', err);
+      setError('Failed to load characters');
       
-      // Fall back to local characters on error
-      const localCharacters = getAllCharacters();
-      setCharacters(localCharacters);
+      // Try to fall back to local characters
+      try {
+        const localCharacters = getAllCharacters();
+        console.log('Error recovery: setting local characters');
+        setCharacters(localCharacters);
+      } catch (e) {
+        console.error('Failed to load local characters:', e);
+        setError('Failed to load any characters');
+      }
     } finally {
       setIsLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      fetchCharacters();
-    } else {
-      setIsLoading(false);
-    }
+    console.log('CharacterContext useEffect running, user:', !!user);
+    fetchCharacters();
   }, [fetchCharacters, user]);
 
   const updateCharacterMessage = useCallback((characterId, message) => {
@@ -140,8 +160,10 @@ export function CharacterProvider({ children }) {
   }, [lastReadTimes, selectedCharacter]);
 
   const handleSetSelectedCharacter = useCallback((character) => {
-    if (!character) {
-      console.warn('Attempted to select invalid character');
+    // Allow null to deselect character
+    if (character === null) {
+      console.log('Deselecting character');
+      setSelectedCharacter(null);
       return;
     }
 
