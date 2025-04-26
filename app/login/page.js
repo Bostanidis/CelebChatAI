@@ -1,13 +1,23 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import supabase from '@/utils/supabase/client'
 import { Eye, EyeOff, Mail, Lock, LogIn } from 'lucide-react'
 
-export default function Login() {
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  )
+}
+
+// Main login form component that uses useSearchParams
+function LoginForm() {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -201,5 +211,14 @@ export default function Login() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Main component with Suspense boundary
+export default function Login() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <LoginForm />
+    </Suspense>
   )
 } 
