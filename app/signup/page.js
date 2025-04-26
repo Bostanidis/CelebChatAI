@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { Eye, EyeOff, Mail, Lock, UserPlus } from 'lucide-react'
 
-export default function SignUp() {
+// Separate component that uses useSearchParams
+function SignUpForm() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -198,18 +199,37 @@ export default function SignUp() {
               </button>
   
               {/* Sign In Link */}
-              <div className="text-center text-sm">
+              <p className="mt-4 text-center text-sm text-muted-foreground dark:text-neutral-400">
+                Already have an account?{' '}
                 <Link
                   href="/login"
-                  className="text-primary hover:text-primary/90 dark:text-primary-400 dark:hover:text-primary-300 transition-colors"
+                  className="font-medium text-primary hover:text-primary/90 focus:outline-none focus:underline transition-colors"
                 >
-                  Already have an account? Sign in
+                  Sign in
                 </Link>
-              </div>
+              </p>
             </form>
           </div>
         </div>
       </div>
     </div>
+  )
+}
+
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
+    </div>
+  )
+}
+
+// Main component with Suspense boundary
+export default function SignUp() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <SignUpForm />
+    </Suspense>
   )
 }
