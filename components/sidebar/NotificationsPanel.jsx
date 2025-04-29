@@ -14,15 +14,19 @@ export default function NotificationsPanel() {
 
   // Get all messages with timestamps
   const messages = Object.entries(characterMessages)
+    .filter(([_, message]) => message !== undefined && message !== null) // Filter out undefined/null messages
     .map(([characterId, message]) => {
       const character = characters.find(c => c.id === characterId);
       return {
         characterId,
         characterName: character?.name || 'Unknown Character',
-        ...message
+        ...(message || {}), // Safely spread message properties
+        // Ensure timestamp is a valid date
+        timestamp: message && message.timestamp ? new Date(message.timestamp) : new Date()
       };
     })
-    .sort((a, b) => b.timestamp - a.timestamp); // Sort by newest first
+    .filter(message => message.timestamp && !isNaN(message.timestamp.getTime())) // Filter out invalid timestamps
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Sort by newest first
 
   const handleClose = () => {
     setShowNotifications(false);
@@ -80,4 +84,4 @@ export default function NotificationsPanel() {
       </div>
     </div>
   );
-} 
+}

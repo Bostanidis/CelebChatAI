@@ -4,9 +4,10 @@
 
 import { useCharacter } from '@/contexts/CharacterContext'
 import { Loader2, UserRound } from 'lucide-react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useSubscription } from '@/contexts/SubscriptionContext'
 import NotificationsPanel from './NotificationsPanel'
+import { useEffect } from 'react'
 
 export default function CharacterList() {
   const { 
@@ -23,18 +24,37 @@ export default function CharacterList() {
   } = useCharacter()
   const { tier, getRemainingMessages } = useSubscription()
   const pathname = usePathname()
+  const router = useRouter()
 
-  console.log('CharacterList render:', {
-    charactersLength: characters?.length,
-    characters,
-    isLoading,
-    error,
-    tier
-  });
+  // Debug log for unread state
+  useEffect(() => {
+    console.log('CharacterList unread state:', {
+      unreadMessages,
+      characterMessages,
+      selectedCharacter: selectedCharacter?.id,
+      hasUnread: hasUnreadMessages(),
+      unreadCounts: Object.entries(unreadMessages).reduce((acc, [id, isUnread]) => {
+        if (isUnread) acc[id] = true;
+        return acc;
+      }, {})
+    });
+  }, [unreadMessages, characterMessages, selectedCharacter, hasUnreadMessages]);
+
+  // Clear selected character when not on chat page
+  useEffect(() => {
+    if (pathname !== '/') {
+      setSelectedCharacter(null)
+    }
+  }, [pathname, setSelectedCharacter])
 
   const handleCharacterClick = (character) => {
     setSelectedCharacter(character)
     setShowNotifications(false)
+    
+    // If not on chat page, navigate to it
+    if (pathname !== '/') {
+      router.push('/')
+    }
   }
 
   // If notifications are being shown, render the notifications panel
@@ -74,10 +94,10 @@ export default function CharacterList() {
         ) : (
           <div className="space-y-1 p-2">
             {characters.map((character) => {
-              const isSelected = selectedCharacter?.id === character.id
-              const hasUnread = unreadMessages[character.id]
-              const latestMessage = characterMessages[character.id]
-              const messageText = latestMessage ? latestMessage.content : character.description
+              const isSelected = selectedCharacter?.id === character.id;
+              const hasUnread = unreadMessages[character.id] === true;
+              const latestMessage = characterMessages[character.id];
+              const messageText = latestMessage ? latestMessage.content : character.description;
               
               return (
                 <div

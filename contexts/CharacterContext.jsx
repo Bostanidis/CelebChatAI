@@ -3,7 +3,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { useSubscription } from './SubscriptionContext';
-import supabase from '@/utils/supabase/client';
 import { getAllCharacters, CHARACTERS } from '@/lib/characters';
 
 const CharacterContext = createContext();
@@ -31,82 +30,89 @@ export function CharacterProvider({ children }) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [characterMessages, setCharacterMessages] = useState({});
   const [unreadMessages, setUnreadMessages] = useState({});
-  const [lastReadTimes, setLastReadTimes] = useState({});
 
   const { subscription } = useSubscription();
   const { user } = useAuth();
 
+  // Debug function to log state changes
+  const logStateChange = useCallback((action, data) => {
+    // Only log if it's a significant state change
+    const shouldLog = [
+      'Selecting Character',
+      'Deselecting Character',
+      'Message Update',
+      'Updating Notifications'
+    ].includes(action);
+
+    if (shouldLog) {
+      console.log(`[CharacterContext] ${action}:`, {
+        selectedCharacter: selectedCharacter?.id,
+        unreadMessages,
+        characterMessages,
+        ...data
+      });
+    }
+  }, [selectedCharacter, unreadMessages, characterMessages]);
+
+  // Remove Supabase fetching logic
+  // Fetch characters from local characters.js file
   const fetchCharacters = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-
-      // Always get local characters first
+  
+      // Get characters from local characters.js file
       const localCharacters = getAllCharacters();
       console.log('Local characters loaded:', localCharacters?.length, localCharacters);
-      
-      // If user is not authenticated, just use local characters
-      if (!user) {
-        console.log('No user, setting local characters');
-        setCharacters(localCharacters);
-        return;
-      }
-
-      // Optionally fetch additional data from Supabase if user is authenticated
-      try {
-        console.log('Fetching from Supabase...');
-        const { data: dbCharacters, error } = await supabase
-          .from('characters')
-          .select('*')
-          .order('name');
-
-        console.log('Supabase response:', { dbCharacters, error });
-
-        if (!error && dbCharacters) {
-          // Create a map of DB characters for quick lookup
-          const dbCharacterMap = new Map(dbCharacters.map(char => [char.id, char]));
-          
-          // Combine characters, preferring DB versions when available
-          const combinedCharacters = localCharacters.map(localChar => {
-            const dbChar = dbCharacterMap.get(localChar.id);
-            return dbChar ? { ...localChar, ...dbChar } : localChar;
-          });
-
-          console.log('Setting combined characters:', combinedCharacters?.length);
-          setCharacters(combinedCharacters);
-        } else {
-          // If Supabase fails, just use local characters
-          console.log('Supabase error, falling back to local characters');
-          setCharacters(localCharacters);
-        }
-      } catch (err) {
-        console.error('Error fetching from Supabase:', err);
-        // Fall back to local characters
-        console.log('Supabase error, falling back to local characters');
-        setCharacters(localCharacters);
-      }
+  
+      // Set characters directly from local source
+      setCharacters(localCharacters);
     } catch (err) {
       console.error('Unexpected error fetching characters:', err);
       setError('Failed to load characters');
-      
-      // Try to fall back to local characters
-      try {
-        const localCharacters = getAllCharacters();
-        console.log('Error recovery: setting local characters');
-        setCharacters(localCharacters);
-      } catch (e) {
-        console.error('Failed to load local characters:', e);
-        setError('Failed to load any characters');
-      }
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, []);
 
   useEffect(() => {
     console.log('CharacterContext useEffect running, user:', !!user);
     fetchCharacters();
   }, [fetchCharacters, user]);
+
+  const handleSetSelectedCharacter = useCallback((character) => {
+    // Allow null to deselect character
+    if (character === null) {
+      logStateChange('Deselecting Character', {});
+      setSelectedCharacter(null);
+      return;
+    }
+
+    logStateChange('Selecting Character', { characterId: character.id });
+    
+    // First update selected character
+    setSelectedCharacter(character);
+    
+    // Then update message states in a single batch
+    setCharacterMessages(prev => {
+      const newState = {
+        ...prev,
+        [character.id]: prev[character.id] ? {
+          ...prev[character.id],
+          isUnread: false
+        } : prev[character.id]
+      };
+      return newState;
+    });
+
+    setUnreadMessages(prev => {
+      const newState = {
+        ...prev,
+        [character.id]: false
+      };
+      return newState;
+    });
+  }, [logStateChange]);
 
   const updateCharacterMessage = useCallback((characterId, message) => {
     if (!characterId || !message) {
@@ -125,90 +131,73 @@ export function CharacterProvider({ children }) {
       console.warn('Invalid timestamp, using current time');
     }
     
-    const lastReadTimeStr = lastReadTimes[characterId];
-    const lastReadTime = lastReadTimeStr ? new Date(lastReadTimeStr).getTime() : 0;
-    const isFromSelectedCharacter = selectedCharacter?.id === characterId;
-    
-    console.log('Message update:', {
-      characterId,
-      messageTime,
-      lastReadTime,
-      timeDiff: messageTime - lastReadTime,
-      isFromSelectedCharacter,
-      isUser: message.isUser,
-      isSystem: message.isSystem
-    });
+    // Get the current selectedCharacter directly from state to avoid stale closures
+    setSelectedCharacter(currentSelected => {
+      const isFromSelectedCharacter = currentSelected?.id === characterId;
+      
+      // Only mark as unread if it's not from the user, not a system message, and not from the currently selected character
+      const isUnread = !message.isUser && !message.isSystem && !isFromSelectedCharacter;
 
-    setCharacterMessages(prev => ({
-      ...prev,
-      [characterId]: {
-        ...message,
-        isUnread: !message.isUser && !message.isSystem && 
-          (!isFromSelectedCharacter || messageTime - lastReadTime > 5000)
-      }
-    }));
+      logStateChange('Message Update', {
+        characterId,
+        messageTime,
+        isFromSelectedCharacter,
+        isUser: message.isUser,
+        isSystem: message.isSystem,
+        isUnread,
+        currentMessage: characterMessages[characterId],
+        currentSelectedCharacter: currentSelected?.id
+      });
 
-    if (!message.isUser && !message.isSystem) {
-      if (!isFromSelectedCharacter || messageTime - lastReadTime > 5000) {
-        console.log('Marking message as unread for character:', characterId);
-        setUnreadMessages(prev => ({
+      // Update both states in a single batch
+      setCharacterMessages(prev => {
+        const newState = {
           ...prev,
-          [characterId]: true
-        }));
-      }
-    }
-  }, [lastReadTimes, selectedCharacter]);
+          [characterId]: {
+            ...message,
+            isUnread
+          }
+        };
+        return newState;
+      });
 
-  const handleSetSelectedCharacter = useCallback((character) => {
-    // Allow null to deselect character
-    if (character === null) {
-      console.log('Deselecting character');
-      setSelectedCharacter(null);
-      return;
-    }
+      setUnreadMessages(prev => {
+        const newState = {
+          ...prev,
+          [characterId]: isUnread
+        };
+        return newState;
+      });
 
-    console.log('Setting selected character:', character.id);
-    setSelectedCharacter(character);
-    
-    // Update last read time for this character
-    const now = Date.now();
-    setLastReadTimes(prev => ({
-      ...prev,
-      [character.id]: new Date(now).toISOString()
-    }));
-    
-    // Mark messages as read for this character
-    setUnreadMessages(prev => ({
-      ...prev,
-      [character.id]: false
-    }));
-  }, []);
+      // Return the current selectedCharacter (no change to this state)
+      return currentSelected;
+    });
+  }, [characterMessages, logStateChange]);
 
   const markAllMessagesAsRead = useCallback(() => {
     if (!Object.keys(characterMessages).length) {
       return;
     }
 
-    const currentTime = Date.now();
-    const newLastReadTimes = {};
+    logStateChange('Marking All Messages as Read', {});
+
+    // Update both states to mark all messages as read
     const newUnreadMessages = {};
+    const newCharacterMessages = { ...characterMessages };
 
-    Object.entries(characterMessages).forEach(([characterId, message]) => {
-      if (!characterId || !message) {
-        return;
-      }
-
-      newLastReadTimes[characterId] = currentTime;
+    Object.keys(characterMessages).forEach(characterId => {
       newUnreadMessages[characterId] = false;
+      if (newCharacterMessages[characterId]) {
+        newCharacterMessages[characterId] = {
+          ...newCharacterMessages[characterId],
+          isUnread: false
+        };
+      }
     });
 
-    if (Object.keys(newLastReadTimes).length === 0) {
-      return;
-    }
-
-    setLastReadTimes(newLastReadTimes);
     setUnreadMessages(newUnreadMessages);
-  }, [characterMessages]);
+    setCharacterMessages(newCharacterMessages);
+  }, [characterMessages, logStateChange]);
 
   const hasUnreadMessages = useCallback(() => {
     if (!Object.keys(unreadMessages).length) {
@@ -216,33 +205,22 @@ export function CharacterProvider({ children }) {
     }
 
     const selectedCharId = selectedCharacter?.id;
-    const unreadStatus = Object.entries(unreadMessages).some(([characterId, isUnread]) => {
-      if (!isUnread || characterId === selectedCharId) {
-        return false;
-      }
-
-      const message = characterMessages[characterId];
-      if (!message) {
-        return false;
-      }
-      
-      return true;
-    });
     
-    console.log('Unread status check:', {
-      unreadMessages,
-      selectedCharId,
-      hasUnread: unreadStatus
+    // Check both states for consistency
+    return Object.keys(unreadMessages).some(characterId => {
+      if (characterId === selectedCharId) return false;
+      return unreadMessages[characterId] === true;
     });
-    
-    return unreadStatus;
-  }, [unreadMessages, characterMessages, selectedCharacter]);
+  }, [unreadMessages, selectedCharacter]);
 
-  // Replace the notification effect with a debounced version
+  // Complete the notification effect - only update hasUnreadMessages state, never control panel visibility
   useEffect(() => {
     const updateNotifications = debounce(() => {
       const hasUnread = hasUnreadMessages();
-
+      logStateChange('Updating Notifications', { hasUnread });
+      
+      // Remove all auto-open/auto-close functionality
+      // Panel visibility is now exclusively controlled by the Bell icon
       
     }, 300);
 
@@ -251,7 +229,7 @@ export function CharacterProvider({ children }) {
     return () => {
       updateNotifications.clear && updateNotifications.clear();
     };
-  }, [unreadMessages, hasUnreadMessages, showNotifications]);
+  }, [unreadMessages, hasUnreadMessages, logStateChange]);
 
   const value = {
     characters,
@@ -283,4 +261,4 @@ export function useCharacter() {
     throw new Error('useCharacter must be used within a CharacterProvider');
   }
   return context;
-} 
+}

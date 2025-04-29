@@ -6,6 +6,8 @@ import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCharacter } from '@/contexts/CharacterContext'
+import { useAuth } from '@/contexts/AuthContext'
+import supabase from '@/utils/supabase/client'
 
 export function NavigationIcons() {
   const [mounted, setMounted] = useState(false)
@@ -16,6 +18,7 @@ export function NavigationIcons() {
   const [isInChatView, setIsInChatView] = useState(true)
   const menuRef = useRef(null)
   const { setShowNotifications, hasUnreadMessages } = useCharacter()
+  const { user } = useAuth()
 
   useEffect(() => {
     setMounted(true)
@@ -260,9 +263,21 @@ export function NavigationIcons() {
                     animate="visible"
                   >
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         setTheme(option.value)
                         setIsOpen(false)
+                        
+                        // Save theme preference to Supabase if user is logged in
+                        if (user) {
+                          try {
+                            await supabase
+                              .from('profiles')
+                              .update({ chosen_theme: option.value })
+                              .eq('id', user.id)
+                          } catch (error) {
+                            console.error('Error saving theme preference:', error)
+                          }
+                        }
                       }}
                       className={`
                         w-full flex items-center gap-2 px-4 py-2 text-sm
@@ -282,4 +297,4 @@ export function NavigationIcons() {
       </div>
     </div>
   )
-} 
+}

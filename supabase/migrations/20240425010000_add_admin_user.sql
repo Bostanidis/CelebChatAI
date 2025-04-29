@@ -6,6 +6,10 @@ ALTER TABLE profiles
 ADD CONSTRAINT profiles_subscription_tier_check 
 CHECK (subscription_tier IN ('FREE', 'PRO', 'ULTRA', 'ADMIN'));
 
+-- Add sound_enabled column with default value true
+ALTER TABLE profiles
+ADD COLUMN IF NOT EXISTS sound_enabled BOOLEAN DEFAULT true;
+
 -- Update your profile to ADMIN tier
 UPDATE profiles 
 SET subscription_tier = 'ADMIN' 

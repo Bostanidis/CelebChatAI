@@ -15,6 +15,7 @@ export function ChatProvider({ children }) {
   const [isLoading, setIsLoading] = useState(false)
   const [streamingMessage, setStreamingMessage] = useState('')
   const [user, setUser] = useState(null)
+  const [soundEnabled, setSoundEnabled] = useState(true) // Initialize as true by default for all users
   const { selectedCharacter, updateCharacterMessage } = useCharacter()
   const { user: subscriptionUser, canSendMessage, incrementMessageCount } = useSubscription()
   
@@ -65,6 +66,33 @@ export function ChatProvider({ children }) {
       subscription.unsubscribe()
     }
   }, [])
+
+  // Load sound settings when user changes
+  useEffect(() => {
+    const fetchSoundSettings = async () => {
+      if (!user) {
+        // Keep sounds enabled for non-logged in users
+        return
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('sound_enabled')
+          .eq('id', user.id)
+          .single()
+
+        if (error) throw error
+        setSoundEnabled(data.sound_enabled)
+      } catch (error) {
+        console.error('Error fetching sound settings:', error)
+        // Keep sounds enabled even on error
+        setSoundEnabled(true)
+      }
+    }
+
+    fetchSoundSettings()
+  }, [user])
 
   // Load chat when character changes
   useEffect(() => {
@@ -156,7 +184,7 @@ export function ChatProvider({ children }) {
     const updatedMessages = [...currentMessages, newMessage];
     updateMessagesForCharacter(characterId, updatedMessages);
     
-    if (sendingSoundRef.current) {
+    if (soundEnabled && sendingSoundRef.current) {
       sendingSoundRef.current.currentTime = 0;
       sendingSoundRef.current.play().catch(() => {});
     }
@@ -214,7 +242,8 @@ export function ChatProvider({ children }) {
         isUnread: true
       });
       
-      if (notificationSoundRef.current) {
+      // Only play notification sound if sound is enabled
+      if (soundEnabled && notificationSoundRef.current) {
         notificationSoundRef.current.currentTime = 0;
         notificationSoundRef.current.play().catch(() => {});
       }
@@ -251,7 +280,7 @@ export function ChatProvider({ children }) {
     } finally {
       delete activeRequestsRef.current[characterId];
     }
-  }, [selectedCharacter, user, canSendMessage, incrementMessageCount, getMessagesForCharacter, updateMessagesForCharacter, updateStreamingMessageForCharacter, updateCharacterMessage]);
+  }, [selectedCharacter, user, canSendMessage, incrementMessageCount, getMessagesForCharacter, updateMessagesForCharacter, updateStreamingMessageForCharacter, updateCharacterMessage, soundEnabled]);
 
   const loadChat = useCallback(async (characterId) => {
     if (!user) return;
@@ -279,7 +308,8 @@ export function ChatProvider({ children }) {
           updateCharacterMessage(characterId, {
             content: lastMessage.content,
             timestamp: Date.now(),
-            isUser: false
+            isUser: false,
+            isUnread: false
           });
         }
       }

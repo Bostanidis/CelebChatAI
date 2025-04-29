@@ -4,11 +4,12 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import { Eye, EyeOff, Mail, Lock, UserPlus } from 'lucide-react'
+import { Eye, EyeOff, Mail, Lock, UserPlus, User } from 'lucide-react'
 
 // Separate component that uses useSearchParams
 function SignUpForm() {
   const [formData, setFormData] = useState({
+    username: '',
     email: '',
     password: '',
     confirmPassword: ''
@@ -32,7 +33,7 @@ function SignUpForm() {
   }
 
   const validateForm = () => {
-    if (!formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('All fields are required')
       return false
     }
@@ -44,6 +45,10 @@ function SignUpForm() {
       setError('Password must be at least 6 characters long')
       return false
     }
+    if (formData.username.length < 3) {
+      setError('Username must be at least 3 characters long')
+      return false
+    }
     return true
   }
 
@@ -53,7 +58,7 @@ function SignUpForm() {
 
     setLoading(true)
     try {
-      const { error } = await signUp(formData.email, formData.password)
+      const { error } = await signUp(formData.email, formData.password, formData.username)
       if (error) throw error
 
       router.push(`/login?message=Check your email to confirm your account&redirectTo=${encodeURIComponent(redirectTo)}`)
@@ -89,6 +94,28 @@ function SignUpForm() {
           {/* Form */}
           <div className="bg-white/80 dark:bg-neutral-900/80 backdrop-blur-sm rounded-lg border shadow-lg p-6 border-primary/10 dark:border-primary/20">
             <form className="space-y-5" onSubmit={handleSignUp}>
+              {/* Username Field */}
+              <div>
+                <label className="block text-sm font-medium text-foreground dark:text-white mb-1.5">
+                  Username
+                </label>
+                <div className="relative">
+                  <User 
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground dark:text-neutral-400" 
+                    aria-hidden="true"
+                  />
+                  <input
+                    name="username"
+                    type="text"
+                    required
+                    className="pl-10 w-full h-10 bg-white/50 dark:bg-neutral-800/50 border border-primary/10 dark:border-primary/20 rounded-md text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-transparent transition-all"
+                    placeholder="Choose a username"
+                    value={formData.username}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+              
               {/* Email Field */}
               <div>
                 <label className="block text-sm font-medium text-foreground dark:text-white mb-1.5">

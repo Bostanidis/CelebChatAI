@@ -8,287 +8,236 @@ CelebChatAI is a Next.js application that enables users to have conversations wi
 
 - A collection of pre-defined characters with unique personalities
 - Real-time chat interface with streaming responses
-- User authentication and subscription tiers
-- Persistent chat history
+- User authentication and subscription tiers (FREE, PRO, ULTRA, ADMIN)
+- Persistent chat history with Supabase
 - Responsive design with light/dark mode support
+- Sound effects for message interactions (configurable)
+- Rate limiting with Upstash Redis
+- Character selection and chat state management
 
 The application uses Supabase for authentication and data storage, and DeepSeek's AI API for generating character responses.
 
-## Tech Stack
+## Tech Stack (As of April 2025)
 
 ### Frontend
-- **Framework**: Next.js 15.3.0
+- **Framework**: Next.js 15.3.0 (App Router)
 - **UI Library**: React 19.1.0
-- **Styling**: Tailwind CSS 4.1.4, DaisyUI 5.0.19
-- **Icons**: Lucide React 0.488.0
+- **Styling**: 
+  - Tailwind CSS 4.1.4
+  - DaisyUI 5.0.19
+  - shadcn-ui 0.9.5
+- **Icons**: 
+  - Lucide React 0.488.0
+  - Heroicons React 2.2.0
 - **Theme**: next-themes 0.4.6
 - **Animations**: Framer Motion 12.7.4
+- **Date Handling**: date-fns 4.1.0
 
-### Backend
+### Backend & Infrastructure
+- **Runtime**: Node.js 22.15.0
+- **Package Manager**: npm 10.9.2
 - **API Routes**: Next.js API Routes
-- **Authentication**: Supabase Auth
+- **Authentication**: Supabase Auth (@supabase/supabase-js 2.49.4)
 - **Database**: Supabase PostgreSQL
-- **AI Integration**: DeepSeek API
-- **Rate Limiting**: Upstash Redis
+- **AI Integration**: 
+  - DeepSeek API (@ai-sdk/deepseek 0.2.13)
+  - OpenAI API (openai 4.96.0)
+- **Rate Limiting**: 
+  - Upstash Redis (@upstash/redis 1.34.8)
+  - Upstash Rate Limit (@upstash/ratelimit 2.0.5)
+- **Schema Validation**: Zod 3.24.3
 
 ### Development Tools
 - **Linting**: ESLint 9
-- **Package Manager**: npm
 - **Environment Variables**: dotenv 16.5.0
+- **Deployment**: Netlify (netlify.toml configuration)
 
 ## Directory Structure
 
 ```
 characterai/
 ├── app/                  # Next.js app directory (pages and API routes)
-│   ├── api/              # API routes
-│   ├── auth/             # Authentication pages
-│   ├── login/            # Login page
-│   ├── signup/           # Signup page
-│   ├── profile/          # User profile page
-│   ├── settings/         # User settings page
-│   ├── subscription/     # Subscription management page
-│   ├── debug/            # Debugging tools
-│   ├── globals.css       # Global styles
-│   ├── layout.js         # Root layout component
-│   └── page.js           # Home page component
-├── components/           # React components
-│   ├── chat/             # Chat-related components
-│   ├── sidebar/          # Sidebar components
-│   ├── subscription/     # Subscription-related components
-│   ├── Logo.jsx          # Application logo component
-│   ├── Navbar.js         # Navigation bar component
-│   ├── theme-toggle.js   # Theme toggle component
-│   └── theme-provider.js # Theme provider component
-├── contexts/             # React context providers
-│   ├── AuthContext.js    # Authentication context
-│   ├── CharacterContext.jsx # Character management context
-│   ├── ChatContext.jsx   # Chat functionality context
-│   └── SubscriptionContext.jsx # Subscription management context
-├── lib/                  # Utility libraries
-│   ├── ai.js             # AI integration functions
-│   ├── characters.js     # Character definitions
-│   ├── supabase.js       # Supabase client and functions
-│   └── debug-auth.js     # Authentication debugging
-├── public/               # Static assets
-│   └── characters/       # Character avatar images
-├── supabase/             # Supabase configuration
-│   └── migrations/       # Database migrations
-├── utils/                # Utility functions
-│   └── supabase/         # Supabase utility functions
-├── .env.local.example    # Example environment variables
-├── middleware.js         # Next.js middleware for auth protection
-├── next.config.mjs       # Next.js configuration
-├── package.json          # Project dependencies
-└── supabase_setup.sql    # SQL setup for Supabase
+│   ├── api/             # API routes for chat, auth, and subscriptions
+│   ├── (auth)/          # Authentication-related pages (login, signup)
+│   ├── (dashboard)/     # User dashboard pages (profile, settings)
+│   ├── globals.css      # Global styles
+│   ├── layout.js        # Root layout with providers
+│   └── page.js          # Home page with chat interface
+├── components/          # React components
+│   ├── chat/           # Chat interface components
+│   ├── settings/       # Settings page components
+│   ├── sidebar/        # Sidebar and character list
+│   ├── subscription/   # Subscription management
+│   └── ui/             # Reusable UI components
+├── contexts/           # React context providers
+│   ├── AuthContext.js  # Authentication state
+│   ├── CharacterContext.jsx # Character management
+│   ├── ChatContext.jsx # Chat functionality
+│   └── SubscriptionContext.jsx # Subscription management
+├── lib/               # Core functionality
+│   ├── ai.js         # AI integration
+│   ├── characters.js # Character definitions
+│   ├── supabase.js   # Database operations
+│   └── utils.js      # Utility functions
+├── public/           # Static assets
+│   ├── sounds/      # Sound effects
+│   └── characters/  # Character images
+├── styles/          # Additional styling
+├── supabase/        # Supabase configuration
+│   └── migrations/  # Database migrations
+├── utils/           # Utility functions
+│   └── supabase/    # Supabase utilities
+└── scripts/         # Development scripts
 ```
 
-## Modules & Components
+## Key Features
 
-### Contexts
+### Authentication & Authorization
+- Email/password authentication
+- OAuth providers support
+- Protected routes with middleware
+- Role-based access control
 
-#### CharacterContext
-- **Location**: `contexts/CharacterContext.jsx`
-- **Purpose**: Manages character data and selection
-- **Key Functions**:
-  - `fetchCharacters()`: Retrieves characters from the database
-  - `canAccessCharacter()`: Determines if a user can access a character
-  - `handleSetSelectedCharacter()`: Sets the currently selected character
+### Subscription System
+- Tiered access (FREE, PRO, ULTRA, ADMIN)
+- Message limits per tier
+- Premium features access control
+- Subscription status management
 
-#### ChatContext
-- **Location**: `contexts/ChatContext.jsx`
-- **Purpose**: Manages chat functionality and message history
-- **Key Functions**:
-  - `sendMessage()`: Sends a message to the AI and streams the response
-  - `loadChat()`: Loads chat history for a specific character
-  - `deleteChatMessages()`: Deletes all messages for a specific character
+### Chat Interface
+- Real-time message streaming
+- Persistent chat history
+- Character-specific conversations
+- Sound effects (configurable)
+- Typing indicators
+- Message status indicators
 
-#### SubscriptionContext
-- **Location**: `contexts/SubscriptionContext.jsx`
-- **Purpose**: Manages user subscription tiers and message limits
-- **Key Functions**:
-  - `loadSubscriptionData()`: Loads user subscription information
-  - `canSendMessage()`: Checks if a user can send a message based on their tier
-  - `incrementMessageCount()`: Increments the message count for a user
+### Character System
+- Pre-defined character personalities
+- Character-specific knowledge bases
+- Access control based on subscription
+- Character selection and management
 
-#### AuthContext
-- **Location**: `contexts/AuthContext.js`
-- **Purpose**: Manages user authentication state
-- **Key Functions**:
-  - `signIn()`: Signs in a user
-  - `signUp()`: Registers a new user
-  - `signOut()`: Signs out the current user
+## Database Schema
 
-### Components
+### profiles
+```sql
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users,
+  subscription_tier TEXT DEFAULT 'FREE',
+  subscription_status TEXT DEFAULT 'active',
+  subscription_end_date TIMESTAMPTZ,
+  sound_enabled BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-#### Chat Components
-- **Location**: `components/chat/`
-- **Key Components**:
-  - `ChatWindow.jsx`: Main chat interface
-  - `MessageBubble.jsx`: Individual message display
-  - `TypingIndicator.jsx`: Shows when AI is generating a response
+### chats
+```sql
+CREATE TABLE chats (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users,
+  character_id TEXT NOT NULL,
+  messages JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
 
-#### Sidebar Components
-- **Location**: `components/sidebar/`
-- **Key Components**:
-  - `CharacterList.jsx`: Displays available characters
-  - `NewCharacterModal.jsx`: Modal for creating new characters
+### message_counts
+```sql
+CREATE TABLE message_counts (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES auth.users,
+  character_id TEXT NOT NULL,
+  date DATE NOT NULL,
+  count INTEGER DEFAULT 0,
+  UNIQUE(user_id, character_id, date)
+);
+```
 
-### Libraries
+## Environment Variables
 
-#### AI Integration
-- **Location**: `lib/ai.js`
-- **Purpose**: Handles communication with the DeepSeek API
-- **Key Functions**:
-  - `streamChatResponse()`: Streams AI responses for real-time chat
-  - `getChatResponse()`: Gets a complete AI response
+```env
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-#### Supabase Integration
-- **Location**: `lib/supabase.js`
-- **Purpose**: Handles database operations and authentication
-- **Key Functions**:
-  - `saveChat()`: Saves chat messages to the database
-  - `getChats()`: Retrieves chat history
-  - `deleteChat()`: Deletes a chat
+# DeepSeek API Configuration
+DEEPSEEK_API_KEY=your-api-key
+OPENAI_API_KEY=your-openai-key
 
-#### Character Definitions
-- **Location**: `lib/characters.js`
-- **Purpose**: Defines available characters and their properties
-- **Key Functions**:
-  - `getCharacterById()`: Retrieves a character by ID
-  - `getAllCharacters()`: Returns all available characters
+# App Configuration
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NODE_ENV=development
 
-## Database
-
-CelebChatAI uses Supabase (PostgreSQL) for data storage with the following schema:
-
-### Tables
-
-#### profiles
-- **Purpose**: Stores user profile information
-- **Fields**:
-  - `id`: UUID (primary key, references auth.users)
-  - `subscription_tier`: Text (default: 'free')
-  - `created_at`: Timestamp
-  - `updated_at`: Timestamp
-
-#### chats
-- **Purpose**: Stores chat messages
-- **Fields**:
-  - `id`: UUID (primary key)
-  - `user_id`: UUID (references auth.users)
-  - `character_id`: Text
-  - `messages`: JSONB (array of message objects)
-  - `created_at`: Timestamp
-
-### Row-Level Security (RLS)
-
-The database uses RLS policies to ensure data security:
-
-- Users can only view, update, insert, and delete their own profiles
-- Users can only view, update, insert, and delete their own chats
-- Anonymous users can insert and view chats (for guest mode)
+# Upstash Redis Configuration
+UPSTASH_REDIS_REST_URL=your-redis-url
+UPSTASH_REDIS_REST_TOKEN=your-redis-token
+```
 
 ## Setup Instructions
 
-### Prerequisites
-- Node.js 18.x or higher
-- npm or yarn
+1. **Prerequisites**
+   - Node.js 22.15.0 (use .nvmrc)
+   - npm 10.9.2
 - Supabase account
 - DeepSeek API key
+   - Upstash Redis account
 
-### Installation
-
-1. Clone the repository:
+2. **Installation**
    ```bash
    git clone https://github.com/yourusername/characterai.git
    cd characterai
-   ```
-
-2. Install dependencies:
-   ```bash
    npm install
    ```
 
-3. Create a `.env.local` file based on `.env.local.example`:
-   ```
-   # Supabase Configuration
-   NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+3. **Environment Setup**
+   - Copy `.env.local.example` to `.env.local`
+   - Fill in all required environment variables
 
-   # DeepSeek API Configuration
-   DEEPSEEK_API_KEY=your-deepseek-api-key
-
-   # App Configuration
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
-
-   # Upstash Redis Configuration
-   UPSTASH_REDIS_REST_URL=your-redis-url
-   UPSTASH_REDIS_REST_TOKEN=your-redis-token
+4. **Database Setup**
+   ```bash
+   # Run Supabase migrations
+   npm run check-supabase
    ```
 
-4. Set up the Supabase database:
-   - Create a new Supabase project
-   - Run the SQL commands in `supabase_setup.sql` in the Supabase SQL editor
-
-5. Start the development server:
+5. **Development**
    ```bash
    npm run dev
    ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser
+6. **Production Build**
+   ```bash
+   npm run build
+   npm start
+   ```
 
-## API Reference
+## API Endpoints
 
-### Chat API
+### Authentication
+- `POST /api/auth/signup`: Register new user
+- `POST /api/auth/login`: User login
+- `POST /api/auth/logout`: User logout
 
-#### POST /api/chat
-- **Purpose**: Generates AI responses for chat messages
-- **Request Body**:
-  ```json
-  {
-    "messages": [
-      { "role": "user", "content": "Hello" },
-      { "role": "assistant", "content": "Hi there!" }
-    ],
-    "characterId": "sherlock-holmes"
-  }
-  ```
-- **Response**: Server-sent events stream with AI-generated text
+### Chat
+- `POST /api/chat`: Send message and get AI response
+- `GET /api/chat/history`: Get chat history
+- `DELETE /api/chat`: Delete chat history
 
-## Usage Guide
-
-### Basic Usage
-
-1. **Select a Character**:
-   - Browse the available characters in the sidebar
-   - Click on a character to start a conversation
-
-2. **Send Messages**:
-   - Type your message in the input field
-   - Press Enter or click the Send button
-   - The AI character will respond in real-time
-
-3. **Manage Chats**:
-   - Use the three dots menu to delete a chat or block a character
-   - Use the back arrow to return to the character selection
-
-### Subscription Tiers
-
-- **Guest**: Limited number of messages
-- **Free**: Basic access to all characters
-- **Pro**: Enhanced features (coming soon)
-- **Ultra**: Premium features (coming soon)
+### Subscription
+- `GET /api/subscription/status`: Get subscription status
+- `POST /api/subscription/upgrade`: Upgrade subscription
+- `POST /api/subscription/cancel`: Cancel subscription
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ## License
