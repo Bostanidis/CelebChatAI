@@ -7,7 +7,10 @@ export default function formatPostDate(createdAt) {
   const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffHours < 24) {
+  // Handle very recent posts (less than a minute old)
+  if (diffMinutes <= 0) {
+    return "just now";
+  } else if (diffHours < 24) {
     if (diffMinutes < 60) {
       return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
     } else {
