@@ -19,6 +19,7 @@ export function NavigationIcons() {
   const menuRef = useRef(null)
   const { setShowNotifications, hasUnreadMessages } = useCharacter()
   const { user } = useAuth()
+  const [userID, setUserID] = useState(null)
 
   useEffect(() => {
     setMounted(true)
@@ -37,6 +38,29 @@ export function NavigationIcons() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  // Fetch user data to redirect to dynamic url
+  useEffect(() => {
+    if (!user) return
+
+    const fetchUserData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', user.id)
+          .single()
+
+        if (error) throw error
+        setUserID(data.id)
+      } catch (error) {
+        console.error('Error fetching user data:', error)
+      }
+    }
+
+    fetchUserData()
+  }, [user])
+
 
   useEffect(() => {
     // Update chat view state based on URL
@@ -71,7 +95,7 @@ export function NavigationIcons() {
   ]
 
   const userOptions = [
-    { label: 'Profile', href: '/profile', icon: User },
+    { label: 'Profile', href: `/profile/${userID}`, icon: User },
     { label: 'Settings', href: '/settings', icon: Settings },
     { label: 'Subscription', href: '/subscription', icon: CreditCard },
   ]
