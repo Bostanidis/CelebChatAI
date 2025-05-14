@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useCharacter } from '@/contexts/CharacterContext'
 import { useAuth } from '@/contexts/AuthContext'
 import supabase from '@/utils/supabase/client'
+import { usePathname } from 'next/navigation'
 
 export function NavigationIcons() {
   const [mounted, setMounted] = useState(false)
@@ -17,6 +18,7 @@ export function NavigationIcons() {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [isInChatView, setIsInChatView] = useState(true)
   const menuRef = useRef(null)
+  const pathname = usePathname()
   const { setShowNotifications, hasUnreadMessages } = useCharacter()
   const { user } = useAuth()
   const [userID, setUserID] = useState(null)
@@ -103,11 +105,11 @@ export function NavigationIcons() {
   // Determine which icon to show for system theme
   const getThemeIcon = () => {
     if (theme === 'system') {
-      return systemTheme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />
+      return systemTheme === 'dark' ? <Moon className="h-6 w-6" /> : <Sun className="h-6 w-6" />
     } else if (theme === 'dark') {
-      return <Moon className="h-5 w-5" />
+      return <Moon className="h-6 w-6" />
     } else {
-      return <Sun className="h-5 w-5" />
+      return <Sun className="h-6 w-6" />
     }
   }
 
@@ -191,96 +193,75 @@ export function NavigationIcons() {
   }
 
   return (
-    <div className="flex items-center gap-2" ref={menuRef}>
+    <div className="flex justify-between items-center w-full" ref={menuRef}>
       <div className="relative">
         <Link href="/" onClick={handleMessageClick}>
-          <motion.button
-            className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-200 ${
-              isInChatView && !notificationsOpen 
-                ? 'text-primary bg-primary/10 dark:bg-primary/20 shadow-sm' 
-                : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80'
+          <button
+            className={`p-2 rounded-lg flex items-center justify-center transition-colors duration-300 ${
+              isInChatView && !notificationsOpen && (pathname === '/')
+                ? 'text-primary' 
+                : 'text-neutral-600 dark:text-neutral-200 hover:text-primary dark:hover:text-primary'
             }`}
-            variants={buttonVariants}
-            initial="idle"
-            whileHover="hover"
-            whileTap="tap"
           >
-            <MessageCircle className="h-[18px] w-[18px]" />
-          </motion.button>
+            <MessageCircle className="h-6 w-6" />
+          </button>
         </Link>
       </div>
 
       <div className="relative">
-        <motion.button
+        <button
           onClick={handleNotificationsClick}
-          className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-200 ${
+          className={`p-2 rounded-lg flex items-center justify-center transition-colors duration-300 ${
             notificationsOpen 
-              ? 'text-primary bg-primary/10 dark:bg-primary/20 shadow-sm' 
-              : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80'
+              ? 'text-primary' 
+              : 'text-neutral-600 dark:text-neutral-200 hover:text-primary dark:hover:text-primary'
           }`}
-          variants={buttonVariants}
-          initial="idle"
-          whileHover="hover"
-          whileTap="tap"
         >
-          <Bell className="h-[18px] w-[18px]" />
+          <Bell className="h-6 w-6" />
           {hasUnreadMessages() && (
-            <motion.span 
-              className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-neutral-900" 
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ repeat: Infinity, repeatType: "reverse", duration: 1.5 }}
+            <span 
+              className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full" 
             />
           )}
-        </motion.button>
+        </button>
       </div>
 
       <div className="relative">
-        <motion.button
+        <button
           onClick={handleUserMenuClick}
-          className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-200 ${
+          className={`p-2 rounded-lg flex items-center justify-center transition-colors duration-300 ${
             userMenuOpen 
-              ? 'text-primary bg-primary/10 dark:bg-primary/20 shadow-sm' 
-              : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80'
+              ? 'text-primary' 
+              : 'text-neutral-600 dark:text-neutral-200 hover:text-primary dark:hover:text-primary'
           }`}
-          variants={buttonVariants}
-          initial="idle"
-          whileHover="hover"
-          whileTap="tap"
         >
-          <UserRound className="h-[18px] w-[18px]" />
-        </motion.button>
+          <UserRound className="h-6 w-6" />
+        </button>
 
         <AnimatePresence>
           {userMenuOpen && (
             <motion.div
-              className="absolute left-0 mt-3 w-52 rounded-xl bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm shadow-lg border border-neutral-200/50 dark:border-neutral-800/50 py-2 z-50 overflow-hidden"
-              variants={menuVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
+              className="absolute left-0 mt-2 w-48 rounded-lg bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm shadow-md border border-neutral-200/50 dark:border-neutral-800/50 py-1.5 z-50 overflow-hidden"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
             >
               {userOptions.map((option, i) => {
                 const Icon = option.icon
                 return (
-                  <motion.div
-                    key={option.label}
-                    custom={i}
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="visible"
-                  >
+                  <div key={option.label}>
                     <Link
                       href={option.href}
                       onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80 transition-all duration-200 cursor-pointer"
+                      className="flex items-center gap-3 w-full text-left px-3 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors duration-200"
                     >
-                      <div className="flex items-center justify-center w-6 h-6">
-                        <Icon className="h-[18px] w-[18px]" />
+                      <div className="flex items-center justify-center w-5 h-5">
+                        <Icon className="h-4 w-4" />
                       </div>
                       {option.label}
                     </Link>
-                  </motion.div>
+                  </div>
                 )
               })}
             </motion.div>
@@ -289,40 +270,30 @@ export function NavigationIcons() {
       </div>
 
       <div className="relative">
-        <motion.button
+        <button
           onClick={handleThemeToggleClick}
-          className={`p-2.5 rounded-xl flex items-center justify-center transition-all duration-200 ${
+          className={`p-2 rounded-lg flex items-center justify-center transition-colors duration-300 ${
             isOpen 
-              ? 'text-primary bg-primary/10 dark:bg-primary/20 shadow-sm' 
-              : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800/80'
+              ? 'text-primary' 
+              : 'text-neutral-600 dark:text-neutral-200 hover:text-primary dark:hover:text-primary'
           }`}
-          variants={buttonVariants}
-          initial="idle"
-          whileHover="hover"
-          whileTap="tap"
         >
           {getThemeIcon()}
-        </motion.button>
+        </button>
 
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              className="absolute left-0 mt-3 w-52 rounded-xl bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm shadow-lg border border-neutral-200/50 dark:border-neutral-800/50 py-2 z-50 overflow-hidden"
-              variants={menuVariants}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
+              className="absolute left-0 mt-2 w-48 rounded-lg bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm shadow-md border border-neutral-200/50 dark:border-neutral-800/50 py-1.5 z-50 overflow-hidden"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
             >
               {options.map((option, i) => {
                 const Icon = option.icon
                 return (
-                  <motion.div
-                    key={option.value}
-                    custom={i}
-                    variants={itemVariants}
-                    initial="hidden"
-                    animate="visible"
-                  >
+                  <div key={option.value}>
                     <button
                       onClick={async () => {
                         setTheme(option.value)
@@ -341,19 +312,19 @@ export function NavigationIcons() {
                         }
                       }}
                       className={`
-                        w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium
-                        transition-all duration-200 cursor-pointer
+                        w-full flex items-center gap-3 px-3 py-2 text-sm font-medium
+                        transition-colors duration-200
                         ${theme === option.value 
-                          ? 'text-primary bg-primary/10 dark:bg-primary/20' 
-                          : 'text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100/80 dark:hover:bg-neutral-800/80'}
+                          ? 'text-primary' 
+                          : 'text-neutral-700 dark:text-neutral-300 hover:text-primary dark:hover:text-primary'}
                       `}
                     >
-                      <div className="flex items-center justify-center w-6 h-6">
-                        <Icon className="h-[18px] w-[18px]" />
+                      <div className="flex items-center justify-center w-5 h-5">
+                        <Icon className="h-4 w-4" />
                       </div>
                       {option.label}
                     </button>
-                  </motion.div>
+                  </div>
                 )
               })}
             </motion.div>
