@@ -12,62 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     storageKey: 'sb-auth-token',
-    storage: {
-      getItem: (key) => {
-        try {
-          // Check if we're in a browser environment
-          if (typeof window !== 'undefined') {
-            const itemStr = localStorage.getItem(key)
-            if (!itemStr) return null
-            const item = JSON.parse(itemStr)
-            const now = new Date()
-            if (now.getTime() > item.expiry) {
-              localStorage.removeItem(key)
-              return null
-            }
-            return item.value
-          }
-          return null
-        } catch (err) {
-          console.error('Error reading from localStorage:', err)
-          return null
-        }
-      },
-      setItem: (key, value) => {
-        try {
-          // Check if we're in a browser environment
-          if (typeof window !== 'undefined') {
-            const item = {
-              value,
-              expiry: new Date().getTime() + 24 * 60 * 60 * 1000, // 24 hours
-            }
-            localStorage.setItem(key, JSON.stringify(item))
-            console.log('Stored auth token in localStorage:', key)
-            
-            // Also set a cookie for the middleware
-            document.cookie = `sb-auth-token=${value}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`
-            console.log('Set auth cookie for middleware')
-          }
-        } catch (err) {
-          console.error('Error writing to localStorage:', err)
-        }
-      },
-      removeItem: (key) => {
-        try {
-          // Check if we're in a browser environment
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem(key)
-            console.log('Removed auth token from localStorage:', key)
-            
-            // Also remove the cookie
-            document.cookie = `sb-auth-token=; path=/; max-age=0; SameSite=Lax`
-            console.log('Removed auth cookie for middleware')
-          }
-        } catch (err) {
-          console.error('Error removing from localStorage:', err)
-        }
-      },
-    },
+    // Using default localStorage adapter for session storage
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },
@@ -80,15 +25,15 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
-// Add a listener for auth state changes to log them
+// Add a listener for auth state changes to sync cookies with session state
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('Supabase auth state changed:', event, session?.user?.email)
   
-  // When signed in, ensure the cookie is set
+  // When signed in, ensure the cookie is set for middleware authentication
   if (event === 'SIGNED_IN' && session) {
     try {
       if (typeof window !== 'undefined') {
-        // Set the cookie directly
+        // Set the cookie with the access token for middleware
         document.cookie = `sb-auth-token=${session.access_token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`
         console.log('Set auth cookie on sign in')
       }
@@ -97,6 +42,18 @@ supabase.auth.onAuthStateChange((event, session) => {
     }
   }
   
+  // When user is updated, update the cookie
+  if (event === 'USER_UPDATED' && session) {
+    try {
+      if (typeof window !== 'undefined') {
+        document.cookie = `sb-auth-token=${session.access_token}; path=/; max-age=${60 * 60 * 24}; SameSite=Lax`
+        console.log('Updated auth cookie on user update')
+      }
+    } catch (err) {
+      console.error('Error updating auth cookie:', err)
+    }
+  }
+
   // When signed out, ensure the cookie is removed
   if (event === 'SIGNED_OUT') {
     try {
