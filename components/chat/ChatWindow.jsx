@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { useCharacter } from '@/contexts/CharacterContext'
-import { ArrowLeft, UserRound, MoreVertical, Trash2, Ban, UserPlus } from 'lucide-react'
+import { ArrowLeft, UserRound, MoreVertical, Trash2, Ban, UserPlus, Send, LogIn } from 'lucide-react'
 import Logo from '../Logo'
 
 // Placeholder component for when no character is selected
@@ -286,37 +286,51 @@ export default function ChatWindow() {
   )
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between p-4 border-b border-neutral-200 dark:border-neutral-800">
-        <div className="flex items-center gap-3 overflow-hidden object-fit">
+    <div className="flex-1 flex flex-col justify-between min-h-screen relative bg-neutral-50 dark:bg-neutral-900">
+      {/* Header */}
+      <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-white dark:bg-neutral-800 border-b border-neutral-200 dark:border-neutral-700 shadow-sm">
+        <div className="flex items-center gap-3 overflow-hidden">
           <button
             onClick={() => setSelectedCharacter(null)}
-            className="btn btn-ghost btn-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="btn btn-ghost btn-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full p-2"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </button>
+          
           {selectedCharacter?.avatar_url ? (
             <img
               src={selectedCharacter.avatar_url}
               alt={selectedCharacter.name}
-              className="w-8 h-8 rounded-full object-cover object-top"
+              className="w-9 h-9 rounded-full object-cover object-top border-2 border-white dark:border-neutral-700 shadow-sm"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-content">
+            <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-primary-content shadow-sm">
               {selectedCharacter?.name?.[0] || '?'}
+            </div>
+          )}
+          <div className="flex flex-col">
+            <span className="font-medium text-neutral-800 dark:text-neutral-200 truncate">
+              {selectedCharacter?.name || 'Select a character'}
+            </span>
+            {selectedCharacter?.online_status && (
+              <span className="text-xs text-green-500 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                Online
+              </span>
+            )}
+          </div>
         </div>
-      )}
-          <span className="font-medium text-neutral-800 dark:text-neutral-200">{selectedCharacter?.name || 'Select a character'}</span>
-        </div>
+        
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="btn btn-ghost btn-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            className="btn btn-ghost btn-sm text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-full p-2"
           >
-            <MoreVertical className="w-5 h-5" />
+            <MoreVertical className="w-4 h-4" />
           </button>
+          
           {isMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-neutral-800 ring-1 ring-black ring-opacity-5 z-50">
+            <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-neutral-800 ring-1 ring-black ring-opacity-5 z-50 border border-neutral-200 dark:border-neutral-700 overflow-hidden">
               <div className="py-1" role="menu" aria-orientation="vertical">
                 <button
                   onClick={handleBlockUser}
@@ -328,7 +342,7 @@ export default function ChatWindow() {
                 </button>
                 <button
                   onClick={handleDeleteChat}
-                  className="w-full text-left px-4 py-2 text-sm text-error hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2 cursor-pointer"
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 flex items-center gap-2 cursor-pointer"
                   role="menuitem"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -341,56 +355,63 @@ export default function ChatWindow() {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {!messages || messages.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-            <div className="max-w-md">
-              <img
-                src={selectedCharacter.avatar_url}
-                alt={selectedCharacter.name}
-                className="w-24 h-24 mx-auto mb-4 rounded-full object-cover object-top"
-              />
-              <h2 className="text-2xl font-bold mb-2 text-neutral-800 dark:text-neutral-200">
-                Chat with {selectedCharacter.name}
-              </h2>
-              <p className="text-neutral-600 dark:text-neutral-400 mb-6">
-                {selectedCharacter.description}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <>
-        {messages.map((message, index) => (
-          <MessageBubble
-                key={index} 
-            message={message}
-                character={selectedCharacter}
-          />
-        ))}
-            {showTypingIndicator && !messages.some(m => m.role === 'error') && (
-              <div className="flex w-full mb-4 justify-start">
-                <div className="flex max-w-[80%] items-start gap-3 flex-row">
-                  {selectedCharacter?.avatar_url && (
-                    <div className="flex-shrink-0 w-10 h-10 relative">
-                      <img
-                        src={selectedCharacter.avatar_url}
-                        alt={selectedCharacter.name}
-                        className="w-full h-full object-cover rounded-full object-top"
-                      />
-                    </div>
-                  )}
-                  <TypingIndicator />
+      <div className="flex flex-col h-full">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" id="message-container">
+          {!messages || messages.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center h-full">
+              <div className="max-w-md bg-white dark:bg-neutral-800 p-6 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-700">
+                {selectedCharacter?.avatar_url && (
+                  <img
+                    src={selectedCharacter.avatar_url}
+                    alt={selectedCharacter.name}
+                    className="w-24 h-24 mx-auto mb-4 rounded-full object-cover object-top border-4 border-white dark:border-neutral-700 shadow-sm"
+                  />
+                )}
+                <h2 className="text-2xl font-bold mb-2 text-neutral-800 dark:text-neutral-200">
+                  Chat with {selectedCharacter?.name}
+                </h2>
+                <p className="text-neutral-600 dark:text-neutral-400 mb-6">
+                  {selectedCharacter?.description}
+                </p>
+                <div className="text-sm text-neutral-500 dark:text-neutral-400 bg-neutral-100 dark:bg-neutral-700/50 p-3 rounded-lg">
+                  Start the conversation by sending a message below
                 </div>
               </div>
-            )}
-          </>
-        )}
-        <div ref={messagesEndRef} />
+            </div>
+          ) : (
+            <>
+              {messages.map((message, index) => (
+                <MessageBubble
+                  key={index}
+                  message={message}
+                  character={selectedCharacter}
+                />
+              ))}
+              {showTypingIndicator && !messages.some(m => m.role === 'error') && (
+                <div className="flex w-full mb-4 justify-start">
+                  <div className="flex max-w-[80%] items-start gap-3 flex-row">
+                    {selectedCharacter?.avatar_url && (
+                      <div className="flex-shrink-0 w-8 h-8 relative">
+                        <img
+                          src={selectedCharacter.avatar_url}
+                          alt={selectedCharacter.name}
+                          className="w-full h-full object-cover rounded-full object-top"
+                        />
+                      </div>
+                    )}
+                    <TypingIndicator />
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="border-t border-neutral-200/50 dark:border-neutral-800/50 p-4">
-        <div className="flex gap-2 max-w-3xl mx-auto">
+      <div className="sticky bottom-0 border-t border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-4">
+        <form onSubmit={handleSubmit} className="flex gap-2 max-w-3xl mx-auto relative">
           <input
             type="text"
             value={input}
@@ -402,18 +423,42 @@ export default function ChatWindow() {
                   : "Sign up to send more messages"
                 : "Type your message..."
             }
-            className="flex-1 p-2 rounded-lg border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="flex-1 p-3 pl-4 pr-10 rounded-full border border-neutral-300 dark:border-neutral-600 bg-white dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary shadow-sm"
             disabled={isLoading || remainingMessages <= 0}
           />
+          
           <button
             type="submit"
             disabled={isLoading || !input.trim() || remainingMessages <= 0}
-            className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 p-2 rounded-full bg-primary text-white hover:bg-primary-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            Send
+            <Send className="w-4 h-4" />
           </button>
-        </div>
-      </form>
+        </form>
+        
+        {remainingMessages <= 5 && remainingMessages > 0 && (
+          <div className="text-xs text-center mt-2 text-amber-600 dark:text-amber-400">
+            {remainingMessages} message{remainingMessages !== 1 ? 's' : ''} remaining in your free plan
+          </div>
+        )}
+        
+        {remainingMessages <= 0 && (
+          <div className="flex justify-center gap-2 mt-3">
+            <button 
+              onClick={() => setShowSignUpModal(true)}
+              className="btn btn-sm bg-primary hover:bg-primary-dark text-white px-4 py-1 rounded-full text-xs font-medium flex items-center gap-1"
+            >
+              <UserPlus className="w-3 h-3" /> Sign Up
+            </button>
+            <button 
+              onClick={() => setShowLoginModal(true)}
+              className="btn btn-sm bg-neutral-200 dark:bg-neutral-700 hover:bg-neutral-300 dark:hover:bg-neutral-600 text-neutral-800 dark:text-neutral-200 px-4 py-1 rounded-full text-xs font-medium flex items-center gap-1"
+            >
+              <LogIn className="w-3 h-3" /> Login
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Login Modal */}
       {showLoginModal && <LoginModal />}
@@ -421,5 +466,5 @@ export default function ChatWindow() {
       {/* Sign Up Modal */}
       {showSignUpModal && <SignUpModal />}
     </div>
-  )
+  );
 }
